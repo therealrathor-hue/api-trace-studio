@@ -1,0 +1,117 @@
+/**
+ * API Trace Studio - Configuration Example
+ * Rename to api-trace.config.js or configure programmatically via initApiTrace()
+ */
+module.exports = {
+  // Service name shown in dashboard and structured logs
+  serviceName: process.env.API_TRACE_SERVICE_NAME || 'my-express-app',
+
+  // Environment (development, staging, production)
+  environment: process.env.NODE_ENV || 'development',
+
+  // Minimum log level ('trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal')
+  logLevel: 'info',
+
+  // Storage and retention configuration
+  storage: {
+    type: 'both', // 'file' | 'memory' | 'both'
+    directory: './logs',
+    filename: 'api-trace.log',
+    maxSizeBytes: 10 * 1024 * 1024, // 10MB per log file
+    maxFiles: 14, // Keep 14 rotated log files
+    inMemoryBufferSize: 2000, // Maximum in-memory records for instant dashboard queries
+    flushIntervalMs: 500, // Non-blocking buffer flush interval
+  },
+
+  // Built-in Web Dashboard configuration
+  dashboard: {
+    enabled: true,
+    endpoint: '/logs', // URL mount point
+    title: 'API Trace Studio',
+    auth: {
+      enabled: process.env.NODE_ENV === 'production',
+      username: process.env.API_TRACE_DASHBOARD_USER || 'admin',
+      password: process.env.API_TRACE_DASHBOARD_PASS || 'secret123',
+    },
+    pollingIntervalMs: 3000,
+    sseEnabled: true, // Real-time Server-Sent Events live stream
+  },
+
+  // Performance thresholds
+  performance: {
+    slowApiThresholdMs: 1000, // APIs >= 1000ms marked as slow
+    slowFunctionThresholdMs: 200, // Functions >= 200ms marked as slow
+    slowDbThresholdMs: 500, // DB operations >= 500ms marked as slow
+    slowOutboundThresholdMs: 800, // Outbound HTTP calls >= 800ms marked as slow
+  },
+
+  // Sensitive data redaction
+  redaction: {
+    enabled: true,
+    keys: [
+      'password',
+      'secret',
+      'token',
+      'authorization',
+      'cookie',
+      'apiKey',
+      'creditCard',
+      'cvv',
+      'ssn',
+      'privateKey',
+    ],
+    maskHeaders: ['authorization', 'cookie', 'set-cookie', 'x-api-key'],
+    replacement: '[REDACTED]',
+    maskPatterns: true, // Automatically redact JWTs, credit cards, SSNs in strings
+  },
+
+  // Tracing configuration
+  tracing: {
+    enabled: true,
+    captureHeaders: [
+      'content-type',
+      'user-agent',
+      'x-forwarded-for',
+      'x-request-id',
+      'x-trace-id',
+      'traceparent',
+    ],
+    captureRequestBody: true,
+    captureResponseBody: false,
+    maxBodySize: 65536, // 64KB max request body capture
+    useOpenTelemetry: true,
+  },
+
+  // Outbound HTTP/HTTPS and fetch monitoring
+  outbound: {
+    enabled: true,
+    http: true,
+    fetch: true,
+    propagateTraceContext: true, // Injects traceparent & x-request-id to downstream services
+  },
+
+  // Error capturing & deduplication
+  errors: {
+    enabled: true,
+    captureUncaughtExceptions: true,
+    captureUnhandledRejections: true,
+    deduplicate: true,
+  },
+
+  // Sampling rate (1.0 = 100%, 0.1 = 10% sampling)
+  sampling: {
+    rate: 1.0,
+    alwaysSampleErrors: true, // Always capture error requests even when sampled
+    alwaysSampleSlow: true,   // Always capture slow requests even when sampled
+  },
+
+  // Ignored routes (bypass tracing & logging completely)
+  ignoreRoutes: [
+    '/health',
+    '/healthz',
+    '/ping',
+    '/favicon.ico',
+    '/robots.txt',
+    '/metrics',
+  ],
+};

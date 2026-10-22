@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Trace Studio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-dark">
+  <div id="app">
+    <!-- Top Header -->
+    <header class="navbar">
+      <div class="nav-left">
+        <div class="logo">
+          <span class="logo-icon">⚡</span>
+          <span class="logo-title">API Trace Studio</span>
+        </div>
+        <span class="badge badge-service" id="service-badge">service: loading...</span>
+        <span class="badge badge-env" id="env-badge">env: loading...</span>
+      </div>
+
+      <div class="nav-right">
+        <div class="live-indicator" id="live-indicator" title="Live stream active">
+          <span class="dot"></span>
+          <span class="text">LIVE</span>
+        </div>
+        <button id="btn-pause-stream" class="btn btn-secondary btn-sm" title="Pause / Resume Live Stream">⏸ Pause</button>
+        <button id="btn-refresh" class="btn btn-secondary btn-sm" title="Refresh Data">🔄 Refresh</button>
+        <button id="btn-theme" class="btn btn-secondary btn-sm" title="Toggle Theme">🌓 Theme</button>
+        <button id="btn-export-json" class="btn btn-secondary btn-sm" title="Export JSON">⬇ JSON</button>
+        <button id="btn-export-csv" class="btn btn-secondary btn-sm" title="Export CSV">⬇ CSV</button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="tab-overview">📊 Overview</button>
+      <button class="tab-btn" data-tab="tab-requests">🔍 Request Explorer</button>
+      <button class="tab-btn" data-tab="tab-slow">🐢 Slow APIs</button>
+      <button class="tab-btn" data-tab="tab-errors">🚨 Errors & Exceptions</button>
+      <button class="tab-btn" data-tab="tab-stream">📡 Live Stream</button>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="content">
+
+      <!-- TAB: Overview -->
+      <section id="tab-overview" class="tab-panel active">
+        <!-- Metric Cards -->
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-title">Total Requests</div>
+            <div class="metric-value" id="metric-total-requests">0</div>
+            <div class="metric-sub" id="metric-rpm">0 req/min</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">Error Rate</div>
+            <div class="metric-value text-danger" id="metric-error-rate">0.0%</div>
+            <div class="metric-sub" id="metric-error-count">0 errors</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">Average Latency</div>
+            <div class="metric-value text-info" id="metric-avg-latency">0 ms</div>
+            <div class="metric-sub">P50: <span id="metric-p50">0 ms</span></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">P95 Latency</div>
+            <div class="metric-value text-warning" id="metric-p95-latency">0 ms</div>
+            <div class="metric-sub">P99: <span id="metric-p99">0 ms</span></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">Slow Requests</div>
+            <div class="metric-value text-warning" id="metric-slow-count">0</div>
+            <div class="metric-sub" id="metric-slow-rate">0.0%</div>
+          </div>
+        </div>
+
+        <!-- Status Distribution Bar -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <h3>HTTP Status Distribution</h3>
+          </div>
+          <div class="card-body">
+            <div class="status-bar" id="status-distribution-bar">
+              <!-- Rendered via JS -->
+            </div>
+            <div class="status-legend" id="status-distribution-legend"></div>
+          </div>
+        </div>
+
+        <div class="grid-2 mt-4">
+          <!-- Top Slow APIs -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Top Slow Endpoints</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Method</th>
+                      <th>Route</th>
+                      <th>Calls</th>
+                      <th>Avg Latency</th>
+                      <th>Max Latency</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overview-slow-tbody">
+                    <tr><td colspan="5" class="text-center text-muted">No slow routes recorded</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Errors -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Top Exceptions</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Exception</th>
+                      <th>Message</th>
+                      <th>Count</th>
+                      <th>Last Seen</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overview-errors-tbody">
+                    <tr><td colspan="4" class="text-center text-muted">No errors recorded</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: Request Explorer -->
+      <section id="tab-requests" class="tab-panel">
+        <!-- Filter Toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <input type="text" id="filter-search" placeholder="Search URL, route, trace ID, error..." class="input">
+          </div>
+          <div class="filter-group">
+            <select id="filter-method" class="select">
+              <option value="">All Methods</option>
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+            <select id="filter-status" class="select">
+              <option value="">All Statuses</option>
+              <option value="2xx">2xx Success</option>
+              <option value="3xx">3xx Redirect</option>
+              <option value="4xx">4xx Client Error</option>
+              <option value="5xx">5xx Server Error</option>
+            </select>
+            <select id="filter-level" class="select">
+              <option value="">All Levels</option>
+              <option value="info">INFO</option>
+              <option value="warn">WARN</option>
+              <option value="error">ERROR</option>
+            </select>
+            <label class="checkbox-label">
+              <input type="checkbox" id="filter-slow"> Slow Only
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="filter-error"> Errors Only
+            </label>
+            <button id="btn-apply-filters" class="btn btn-primary btn-sm">Filter</button>
+            <button id="btn-clear-filters" class="btn btn-secondary btn-sm">Reset</button>
+          </div>
+        </div>
+
+        <!-- Requests Table -->
+        <div class="card mt-2">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 80px;">Method</th>
+                  <th style="width: 80px;">Status</th>
+                  <th>Route / URL</th>
+                  <th style="width: 100px;">Duration</th>
+                  <th style="width: 120px;">Client IP</th>
+                  <th style="width: 160px;">Timestamp</th>
+                  <th style="width: 80px;">Details</th>
+                </tr>
+              </thead>
+              <tbody id="requests-tbody">
+                <tr><td colspan="7" class="text-center text-muted">Loading requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-bar">
+            <div class="pagination-info" id="pagination-info">Showing 0-0 of 0</div>
+            <div class="pagination-controls">
+              <button id="btn-prev-page" class="btn btn-secondary btn-sm" disabled>Previous</button>
+              <span id="pagination-page-display">Page 1</span>
+              <button id="btn-next-page" class="btn btn-secondary btn-sm" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: Slow APIs -->
+      <section id="tab-slow" class="tab-panel">
+        <div class="card">
+          <div class="card-header">
+            <h3>Slow API Performance Breakdown</h3>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Method</th>
+                    <th>Route</th>
+                    <th>Total Calls</th>
+                    <th>Avg Duration</th>
+                    <th>Min Duration</th>
+                    <th>Max Duration</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="slow-api-tbody">
+                  <tr><td colspan="7" class="text-center text-muted">No slow endpoints detected</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: Errors -->
+      <section id="tab-errors" class="tab-panel">
+        <div class="card">
+          <div class="card-header">
+            <h3>Exceptions & Error Fingerprints</h3>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Message</th>
+                    <th>Occurrences</th>
+                    <th>First Seen</th>
+                    <th>Last Seen</th>
+                    <th>Sample Trace</th>
+                  </tr>
+                </thead>
+                <tbody id="errors-tbody">
+                  <tr><td colspan="6" class="text-center text-muted">No exceptions recorded</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: Live Stream -->
+      <section id="tab-stream" class="tab-panel">
+        <div class="card terminal-card">
+          <div class="terminal-header">
+            <span>📡 Live Log Output</span>
+            <div>
+              <label class="checkbox-label" style="display:inline-flex; color:#ccc;">
+                <input type="checkbox" id="stream-autoscroll" checked> Auto-scroll
+              </label>
+              <button id="btn-clear-stream" class="btn btn-secondary btn-sm ml-2">Clear</button>
+            </div>
+          </div>
+          <div class="terminal-body" id="stream-logs-container">
+            <div class="text-muted">Listening for live logs...</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Trace Details Slide-out Drawer -->
+    <div id="drawer-overlay" class="drawer-overlay"></div>
+    <div id="trace-drawer" class="trace-drawer">
+      <div class="drawer-header">
+        <div>
+          <h2 id="drawer-title">Request Trace Details</h2>
+          <div class="drawer-subtitle" id="drawer-subtitle"></div>
+        </div>
+        <button id="btn-close-drawer" class="btn-close">&times;</button>
+      </div>
+
+      <div class="drawer-tabs">
+        <button class="drawer-tab-btn active" data-drawer-tab="dtab-waterfall">Waterfall Timeline</button>
+        <button class="drawer-tab-btn" data-drawer-tab="dtab-overview">Overview</button>
+        <button class="drawer-tab-btn" data-drawer-tab="dtab-headers">Headers</button>
+        <button class="drawer-tab-btn" data-drawer-tab="dtab-body">Payload & Query</button>
+        <button class="drawer-tab-btn" data-drawer-tab="dtab-error">Error & Stack</button>
+      </div>
+
+      <div class="drawer-content">
+        <!-- Drawer Waterfall -->
+        <div id="dtab-waterfall" class="drawer-panel active">
+          <div id="waterfall-container"></div>
+        </div>
+
+        <!-- Drawer Overview -->
+        <div id="dtab-overview" class="drawer-panel">
+          <div id="drawer-overview-details"></div>
+        </div>
+
+        <!-- Drawer Headers -->
+        <div id="dtab-headers" class="drawer-panel">
+          <div id="drawer-headers-content"></div>
+        </div>
+
+        <!-- Drawer Body -->
+        <div id="dtab-body" class="drawer-panel">
+          <div id="drawer-body-content"></div>
+        </div>
+
+        <!-- Drawer Error -->
+        <div id="dtab-error" class="drawer-panel">
+          <div id="drawer-error-content"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

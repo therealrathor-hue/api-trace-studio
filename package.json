@@ -1,0 +1,67 @@
+{
+  "name": "api-trace-studio",
+  "version": "1.0.0",
+  "description": "Zero-friction, production-ready API logging, function tracing, error monitoring, and observability dashboard for Node.js applications.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "api-trace-studio": "bin/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "public",
+    "api-trace.config.js.example",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "tsx --test test/**/*.test.ts",
+    "test:coverage": "tsx --test --experimental-test-coverage test/**/*.test.ts",
+    "lint": "tsc --noEmit",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "logging",
+    "tracing",
+    "opentelemetry",
+    "observability",
+    "express",
+    "fastify",
+    "apm",
+    "dashboard",
+    "performance-monitoring",
+    "error-tracking",
+    "microservices",
+    "w3c-trace-context",
+    "structured-logging"
+  ],
+  "author": "API Trace Studio Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "@types/supertest": "^6.0.2",
+    "express": "^4.19.2",
+    "fastify": "^4.26.2",
+    "supertest": "^6.3.4",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.2"
+  }
+}
